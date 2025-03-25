@@ -26,7 +26,7 @@ public class CaveSimulation extends JFrame {
     public enum Element { EMPTY, SAND, WOOD, FIRE, SMOKE, WATER, WALL }
 
     public CaveSimulation() {
-        setTitle("Cave Simulation - Water Overfill with Sideways Push");
+        setTitle("Cave Simulation");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
         initializeGrid();
@@ -67,14 +67,13 @@ public class CaveSimulation extends JFrame {
         setLocationRelativeTo(null);
         setVisible(true);
 
-        // Timer update order: sand -> water -> wood -> fire -> smoke
         Timer timer = new Timer(100, e -> {
             generationCount++;
-            moveSand();         // sand falls and displaces water
-            simulateWater();    // water flows down/sideways/up based on rules
-            moveWood();         // wood falls if empty below, floats up if water is above
-            moveFire();         // fire spreads and converts wood to smoke
-            moveSmoke();        // smoke moves upward and sideways
+            moveSand();
+            simulateWater();
+            moveWood();
+            moveFire();
+            moveSmoke();
             simulationPanel.repaint();
             generationLabel.setText("Generation: " + generationCount);
         });
@@ -132,7 +131,6 @@ public class CaveSimulation extends JFrame {
         return count;
     }
 
-    // --- SAND: falls down, displaces water if necessary ---
     private void moveSand() {
         for (int row = GRID_HEIGHT - 2; row >= 1; row--) {
             for (int col = 1; col < GRID_WIDTH - 1; col++) {
@@ -167,68 +165,186 @@ public class CaveSimulation extends JFrame {
             }
         }
     }
+    // This version is like snow... It doesnt have that horizontal water leveling
+//    private void simulateWater() {
+//        double[][] newVol = new double[GRID_HEIGHT][GRID_WIDTH];
+//        for (int r = 1; r < GRID_HEIGHT - 1; r++) {
+//            for (int c = 1; c < GRID_WIDTH - 1; c++) {
+//                newVol[r][c] = waterVolume[r][c];
+//            }
+//        }
+//        for (int row = GRID_HEIGHT - 2; row >= 1; row--) {
+//            for (int col = 1; col < GRID_WIDTH - 1; col++) {
+//                double vol = newVol[row][col];
+//                if (vol <= 0) continue;
+//                if ((grid[row + 1][col] == Element.EMPTY || grid[row + 1][col] == Element.WATER)) {
+//                    double capacityBelow = 1.0 - newVol[row + 1][col];
+//                    if (capacityBelow > 0) {
+//                        double moveDown = Math.min(vol, capacityBelow);
+//                        newVol[row + 1][col] += moveDown;
+//                        newVol[row][col] -= moveDown;
+//                        vol -= moveDown;
+//                    }
+//                }
+//                vol = newVol[row][col];
+//                if (vol > 0) {
+//                    boolean downBlockedOrFull = false;
+//                    if (!(grid[row + 1][col] == Element.EMPTY || grid[row + 1][col] == Element.WATER)) {
+//                        downBlockedOrFull = true;
+//                    } else {
+//                        if (newVol[row + 1][col] >= 1.0) {
+//                            downBlockedOrFull = true;
+//                        }
+//                    }
+//                    if (downBlockedOrFull) {
+//                        boolean leftOpen = (grid[row + 1][col - 1] == Element.EMPTY || grid[row + 1][col - 1] == Element.WATER);
+//                        boolean rightOpen = (grid[row + 1][col + 1] == Element.EMPTY || grid[row + 1][col + 1] == Element.WATER);
+//                        if (leftOpen && rightOpen) {
+//                            double half = vol / 2.0;
+//                            double capLeft = 1.0 - newVol[row + 1][col - 1];
+//                            double moveLeft = Math.min(half, Math.max(capLeft, 0));
+//                            double capRight = 1.0 - newVol[row + 1][col + 1];
+//                            double moveRight = Math.min(half, Math.max(capRight, 0));
+//                            newVol[row + 1][col - 1] += moveLeft;
+//                            newVol[row + 1][col + 1] += moveRight;
+//                            double movedTotal = moveLeft + moveRight;
+//                            newVol[row][col] -= movedTotal;
+//                        } else if (leftOpen) {
+//                            double capLeft = 1.0 - newVol[row + 1][col - 1];
+//                            double moveLeft = Math.min(vol, Math.max(capLeft, 0));
+//                            newVol[row + 1][col - 1] += moveLeft;
+//                            newVol[row][col] -= moveLeft;
+//                        } else if (rightOpen) {
+//                            double capRight = 1.0 - newVol[row + 1][col + 1];
+//                            double moveRight = Math.min(vol, Math.max(capRight, 0));
+//                            newVol[row + 1][col + 1] += moveRight;
+//                            newVol[row][col] -= moveRight;
+//                        }
+//                    }
+//                }
+//                vol = newVol[row][col];
+//                if (vol > 1.0) {
+//                    double excess = vol - 1.0;
+//                    newVol[row][col] = 1.0;
+//                    if (grid[row - 1][col] == Element.EMPTY || grid[row - 1][col] == Element.WATER) {
+//                        double capUp = 1.0 - newVol[row - 1][col];
+//                        if (capUp > 0) {
+//                            double moveUp = Math.min(excess, capUp);
+//                            newVol[row - 1][col] += moveUp;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        for (int r = 1; r < GRID_HEIGHT - 1; r++) {
+//            for (int c = 1; c < GRID_WIDTH - 1; c++) {
+//                waterVolume[r][c] = newVol[r][c];
+//                if (waterVolume[r][c] > 0) {
+//                    grid[r][c] = Element.WATER;
+//                } else if (grid[r][c] == Element.WATER) {
+//                    grid[r][c] = Element.EMPTY;
+//                }
+//            }
+//        }
+//    }
 
-    // --- WATER: flows down, splits sideways, and overflows upward ---
     private void simulateWater() {
         double[][] newVol = new double[GRID_HEIGHT][GRID_WIDTH];
+
         for (int r = 1; r < GRID_HEIGHT - 1; r++) {
             for (int c = 1; c < GRID_WIDTH - 1; c++) {
                 newVol[r][c] = waterVolume[r][c];
             }
         }
+
         for (int row = GRID_HEIGHT - 2; row >= 1; row--) {
             for (int col = 1; col < GRID_WIDTH - 1; col++) {
                 double vol = newVol[row][col];
                 if (vol <= 0) continue;
-                if ((grid[row + 1][col] == Element.EMPTY || grid[row + 1][col] == Element.WATER)) {
+
+                // Flow down
+                if (grid[row + 1][col] == Element.EMPTY || grid[row + 1][col] == Element.WATER) {
                     double capacityBelow = 1.0 - newVol[row + 1][col];
                     if (capacityBelow > 0) {
                         double moveDown = Math.min(vol, capacityBelow);
                         newVol[row + 1][col] += moveDown;
                         newVol[row][col] -= moveDown;
-                        vol -= moveDown;
                     }
                 }
+
                 vol = newVol[row][col];
+
+                // Flow diagonally + split
+                boolean downBlockedOrFull = !(grid[row + 1][col] == Element.EMPTY || grid[row + 1][col] == Element.WATER)
+                        || newVol[row + 1][col] >= 1.0;
+
+                if (vol > 0 && downBlockedOrFull) {
+                    boolean leftOpen = (grid[row + 1][col - 1] == Element.EMPTY || grid[row + 1][col - 1] == Element.WATER);
+                    boolean rightOpen = (grid[row + 1][col + 1] == Element.EMPTY || grid[row + 1][col + 1] == Element.WATER);
+
+                    if (leftOpen && rightOpen) {
+                        double half = vol / 2.0;
+
+                        double capLeft = 1.0 - newVol[row + 1][col - 1];
+                        double moveLeft = Math.min(half, Math.max(capLeft, 0));
+
+                        double capRight = 1.0 - newVol[row + 1][col + 1];
+                        double moveRight = Math.min(half, Math.max(capRight, 0));
+
+                        newVol[row + 1][col - 1] += moveLeft;
+                        newVol[row + 1][col + 1] += moveRight;
+                        newVol[row][col] -= (moveLeft + moveRight);
+                    } else if (leftOpen) {
+                        double capLeft = 1.0 - newVol[row + 1][col - 1];
+                        double moveLeft = Math.min(vol, Math.max(capLeft, 0));
+                        newVol[row + 1][col - 1] += moveLeft;
+                        newVol[row][col] -= moveLeft;
+                    } else if (rightOpen) {
+                        double capRight = 1.0 - newVol[row + 1][col + 1];
+                        double moveRight = Math.min(vol, Math.max(capRight, 0));
+                        newVol[row + 1][col + 1] += moveRight;
+                        newVol[row][col] -= moveRight;
+                    }
+                }
+
+                vol = newVol[row][col];
+
+                // Horizontala
                 if (vol > 0) {
-                    boolean downBlockedOrFull = false;
-                    if (!(grid[row + 1][col] == Element.EMPTY || grid[row + 1][col] == Element.WATER)) {
-                        downBlockedOrFull = true;
-                    } else {
-                        if (newVol[row + 1][col] >= 1.0) {
-                            downBlockedOrFull = true;
-                        }
-                    }
-                    if (downBlockedOrFull) {
-                        boolean leftOpen = (grid[row + 1][col - 1] == Element.EMPTY || grid[row + 1][col - 1] == Element.WATER);
-                        boolean rightOpen = (grid[row + 1][col + 1] == Element.EMPTY || grid[row + 1][col + 1] == Element.WATER);
-                        if (leftOpen && rightOpen) {
-                            double half = vol / 2.0;
-                            double capLeft = 1.0 - newVol[row + 1][col - 1];
-                            double moveLeft = Math.min(half, Math.max(capLeft, 0));
-                            double capRight = 1.0 - newVol[row + 1][col + 1];
-                            double moveRight = Math.min(half, Math.max(capRight, 0));
-                            newVol[row + 1][col - 1] += moveLeft;
-                            newVol[row + 1][col + 1] += moveRight;
-                            double movedTotal = moveLeft + moveRight;
-                            newVol[row][col] -= movedTotal;
-                        } else if (leftOpen) {
-                            double capLeft = 1.0 - newVol[row + 1][col - 1];
-                            double moveLeft = Math.min(vol, Math.max(capLeft, 0));
-                            newVol[row + 1][col - 1] += moveLeft;
-                            newVol[row][col] -= moveLeft;
-                        } else if (rightOpen) {
-                            double capRight = 1.0 - newVol[row + 1][col + 1];
-                            double moveRight = Math.min(vol, Math.max(capRight, 0));
-                            newVol[row + 1][col + 1] += moveRight;
-                            newVol[row][col] -= moveRight;
-                        }
+                    boolean leftSame = grid[row][col - 1] == Element.EMPTY || grid[row][col - 1] == Element.WATER;
+                    boolean rightSame = grid[row][col + 1] == Element.EMPTY || grid[row][col + 1] == Element.WATER;
+
+                    if (leftSame && rightSame) {
+                        double half = vol / 2.0;
+
+                        double capLeft = 1.0 - newVol[row][col - 1];
+                        double moveLeft = Math.min(half, Math.max(capLeft, 0));
+
+                        double capRight = 1.0 - newVol[row][col + 1];
+                        double moveRight = Math.min(half, Math.max(capRight, 0));
+
+                        newVol[row][col - 1] += moveLeft;
+                        newVol[row][col + 1] += moveRight;
+                        newVol[row][col] -= (moveLeft + moveRight);
+                    } else if (leftSame) {
+                        double capLeft = 1.0 - newVol[row][col - 1];
+                        double moveLeft = Math.min(vol, Math.max(capLeft, 0));
+                        newVol[row][col - 1] += moveLeft;
+                        newVol[row][col] -= moveLeft;
+                    } else if (rightSame) {
+                        double capRight = 1.0 - newVol[row][col + 1];
+                        double moveRight = Math.min(vol, Math.max(capRight, 0));
+                        newVol[row][col + 1] += moveRight;
+                        newVol[row][col] -= moveRight;
                     }
                 }
+
                 vol = newVol[row][col];
+                // Overfill
                 if (vol > 1.0) {
                     double excess = vol - 1.0;
                     newVol[row][col] = 1.0;
+
                     if (grid[row - 1][col] == Element.EMPTY || grid[row - 1][col] == Element.WATER) {
                         double capUp = 1.0 - newVol[row - 1][col];
                         if (capUp > 0) {
@@ -239,6 +355,8 @@ public class CaveSimulation extends JFrame {
                 }
             }
         }
+
+        // Update again
         for (int r = 1; r < GRID_HEIGHT - 1; r++) {
             for (int c = 1; c < GRID_WIDTH - 1; c++) {
                 waterVolume[r][c] = newVol[r][c];
@@ -251,23 +369,22 @@ public class CaveSimulation extends JFrame {
         }
     }
 
-    // --- WOOD: falls if empty below, floats up if water is directly above ---
+
     private void moveWood() {
         for (int row = GRID_HEIGHT - 2; row >= 1; row--) {
             for (int col = 1; col < GRID_WIDTH - 1; col++) {
                 if (grid[row][col] == Element.WOOD) {
-                    if (grid[row + 1][col] == Element.EMPTY) {  // Wood falls normally
+                    if (grid[row + 1][col] == Element.EMPTY) {
                         grid[row + 1][col] = Element.WOOD;
                         grid[row][col] = Element.EMPTY;
                     }
-                    else if (grid[row - 1][col] == Element.WATER) {  // Wood floats up if water is above
+                    else if (grid[row - 1][col] == Element.WATER) {
                         grid[row - 1][col] = Element.WOOD;
                         grid[row][col] = Element.WATER;
                         double tmpVol = waterVolume[row - 1][col];
                         waterVolume[row - 1][col] = waterVolume[row][col];
                         waterVolume[row][col] = tmpVol;
                     }
-                    // Check for nearby fire (if fire is adjacent, wood turns to fire)
                     boolean fireNearby = false;
                     for (int dr = -1; dr <= 1 && !fireNearby; dr++) {
                         for (int dc = -1; dc <= 1 && !fireNearby; dc++) {
@@ -287,7 +404,6 @@ public class CaveSimulation extends JFrame {
         }
     }
 
-    // --- FIRE: spreads to empty cells and ignites wood ---
     private void moveFire() {
         for (int row = GRID_HEIGHT - 2; row >= 1; row--) {
             for (int col = 1; col < GRID_WIDTH - 1; col++) {
@@ -308,10 +424,10 @@ public class CaveSimulation extends JFrame {
                             moved = true;
                             break;
                         } else if (grid[nr][nc] == Element.WOOD) {
-                            grid[nr][nc] = Element.SMOKE;
-                            smokeLife[nr][nc] = SMOKE_LIFESPAN;
-                            darkSmoke[nr][nc] = true;
-                            grid[row][col] = Element.EMPTY;
+                            grid[nr][nc] = Element.FIRE;
+                            grid[row][col] = Element.SMOKE;
+                            smokeLife[row][col] = SMOKE_LIFESPAN;
+                            darkSmoke[row][col] = true;
                             moved = true;
                             break;
                         }
@@ -326,7 +442,6 @@ public class CaveSimulation extends JFrame {
         }
     }
 
-    // --- SMOKE: moves upward and sideways ---
     private void moveSmoke() {
         for (int row = 1; row < GRID_HEIGHT - 1; row++) {
             for (int col = 1; col < GRID_WIDTH - 1; col++) {
@@ -372,7 +487,7 @@ public class CaveSimulation extends JFrame {
         }
     }
 
-    // --- RENDERING ---
+    // --- RENDERR ---
     private Color waterColor(int r, int c) {
         double vol = waterVolume[r][c];
         if (vol < 0) vol = 0;
